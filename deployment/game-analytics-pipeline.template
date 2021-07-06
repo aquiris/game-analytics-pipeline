@@ -1842,7 +1842,7 @@ Resources:
                 SqlType: BIGINT
                 Mapping: $.event.event_timestamp
               - Name: event_type
-                SqlType: VARCHAR(8)
+                SqlType: VARCHAR(64)
                 Mapping: $.event.event_type
               - Name: app_version
                 SqlType: VARCHAR(8)
