@@ -20,7 +20,7 @@
     },
     "scripts": {
         "build:init": "rm -rf package-lock.json && rm -rf dist && rm -rf node_modules",
-        "build:zip": "zip -rq admin.zip .",
+        "build:zip": "7z a -tzip -r  admin.zip .",
         "build:dist": "mkdir dist && mv admin.zip dist/",
         "build": "npm run build:init && npm install --production && npm run build:zip && npm run build:dist"
     }

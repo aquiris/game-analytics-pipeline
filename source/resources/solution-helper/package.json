@@ -18,7 +18,7 @@
     },
     "scripts": {
         "build:init": "rm -rf package-lock.json && rm -rf dist && rm -rf node_modules",
-        "build:zip": "zip -rq solution-helper.zip .",
+        "build:zip": "7z a -tzip -r solution-helper.zip .",
         "build:dist": "mkdir dist && mv solution-helper.zip dist/",
         "build": "npm run build:init && npm install --production && npm run build:zip && npm run build:dist"
     },
