@@ -1,0 +1,6 @@
+/.vs
+*.pyc
+*.d.ts
+*.zip
+node_modules
+source/demo/env
