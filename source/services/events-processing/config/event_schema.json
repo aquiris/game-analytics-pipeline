@@ -49,6 +49,11 @@
                     "pattern": "^[A-Za-z0-9-_.]+$",
                     "description": "The platform from which the event is coming."
                 },
+                "debug_tag": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9-_.]+$",
+                    "description": "The debug tag is used for test and debug purpose only."
+                },
                 "event_data": {
                     "type": "object"
                 }

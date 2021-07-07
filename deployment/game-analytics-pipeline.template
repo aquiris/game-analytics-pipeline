@@ -616,6 +616,8 @@ Resources:
               Type: string
             - Name: platform
               Type: string
+            - Name: debug_tag
+              Type: string
             - Name: event_data 
               Type: string
             - Name: metadata
@@ -1708,6 +1710,10 @@ Resources:
                     type: string
                     pattern: "^[A-Za-z0-9-_.]+$"
                     description: The plataform from which the event is comming.
+                debug_tag:
+                    type: string
+                    pattern: "^[A-Za-z0-9-_.]+$"
+                    description: The debug tag is used for test and debug purpose only.
                 event_data:
                   type: object
           securitySchemes:
@@ -1853,6 +1859,9 @@ Resources:
               - Name: platform
                 SqlType: VARCHAR(8)
                 Mapping: $.event.platform
+              - Name: debug_tag
+                SqlType: VARCHAR(8)
+                Mapping: $.event.debug_tag
             RecordFormat:
               RecordFormatType: JSON
               MappingParameters:

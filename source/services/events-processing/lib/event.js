@@ -125,6 +125,9 @@ class Event {
         if (event.hasOwnProperty('platform')) {
           transformed_event.platform = String(event.platform);
         }
+        if (event.hasOwnProperty('debug_tag')) {
+            transformed_event.debug_tag = String(event.debug_tag);
+        }
         if(event.hasOwnProperty('event_data')){
           transformed_event.event_data = event.event_data;
         }
@@ -166,6 +169,9 @@ class Event {
         }
         if (event.hasOwnProperty('platform')) {
           unregistered_format.platform = String(event.platform);
+        }
+        if (event.hasOwnProperty('debug_tag')) {
+          unregistered_format.debug_tag = String(event.debug_tag);
         }
         if(event.hasOwnProperty('event_data')){
           unregistered_format.event_data = event.event_data;
