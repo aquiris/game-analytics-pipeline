@@ -113,17 +113,20 @@ class Event {
         if(event.hasOwnProperty('event_type')){
           transformed_event.event_type = String(event.event_type);
         }
-        if(event.hasOwnProperty('event_name')){
-          transformed_event.event_name = String(event.event_name);
-        }
-        if(event.hasOwnProperty('event_version')){
-          transformed_event.event_version = String(event.event_version);
-        }
         if(event.hasOwnProperty('event_timestamp')){
           transformed_event.event_timestamp = Number(event.event_timestamp);
         }
         if(event.hasOwnProperty('app_version')){
           transformed_event.app_version = String(event.app_version);
+        }
+        if (event.hasOwnProperty('backend_version')) {
+          transformed_event.backend_version = String(event.backend_version);
+        }
+        if (event.hasOwnProperty('platform')) {
+          transformed_event.platform = String(event.platform);
+        }
+        if (event.hasOwnProperty('debug_tag')) {
+            transformed_event.debug_tag = String(event.debug_tag);
         }
         if(event.hasOwnProperty('event_data')){
           transformed_event.event_data = event.event_data;
@@ -155,17 +158,20 @@ class Event {
         if(event.hasOwnProperty('event_type')){
           unregistered_format.event_type = String(event.event_type);
         }
-        if(event.hasOwnProperty('event_name')){
-          unregistered_format.event_name = String(event.event_name);
-        }
-        if(event.hasOwnProperty('event_version')){
-          unregistered_format.event_version = String(event.event_version);
-        }
         if(event.hasOwnProperty('event_timestamp')){
           unregistered_format.event_timestamp = Number(event.event_timestamp);
         }
         if(event.hasOwnProperty('app_version')){
           unregistered_format.app_version = String(event.app_version);
+        }
+        if (event.hasOwnProperty('backend_version')) {
+          unregistered_format.backend_version = String(event.backend_version);
+        }
+        if (event.hasOwnProperty('platform')) {
+          unregistered_format.platform = String(event.platform);
+        }
+        if (event.hasOwnProperty('debug_tag')) {
+          unregistered_format.debug_tag = String(event.debug_tag);
         }
         if(event.hasOwnProperty('event_data')){
           unregistered_format.event_data = event.event_data;

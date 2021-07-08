@@ -20,6 +20,7 @@
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then  
     echo "Please provide the base source bucket name, trademark approved solution name and version where the lambda code will eventually reside."  
     echo "For example: ./build-s3-dist.sh solutions trademarked-solution-name v1.0.0"  
+	$SHELL
     exit 1  
 fi  
 bucket=$1
@@ -146,3 +147,4 @@ echo "--------------------------------------------------------------------------
 ls -laR $build_dist_dir
 ls -laR $template_dist_dir
 
+$SHELL

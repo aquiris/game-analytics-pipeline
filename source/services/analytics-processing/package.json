@@ -13,7 +13,7 @@
     },
     "scripts": {
         "build:init": "rm -rf package-lock.json && rm -rf dist && rm -rf node_modules",
-        "build:zip": "zip -rq analytics-processing.zip .",
+        "build:zip": "7z a -tzip -r analytics-processing.zip .",
         "build:dist": "mkdir dist && mv analytics-processing.zip dist/",
         "build": "npm run build:init && npm install --production && npm run build:zip && npm run build:dist"
     }

@@ -38,7 +38,7 @@ Mappings:
     Data:
       ID: 'SO0096'
       Version: '%%VERSION%%'
-      SendAnonymousData: 'Yes'
+      SendAnonymousData: 'No'
   CloudWatchSettings:
     LogGroup:
       RetentionInDays: 30
@@ -64,7 +64,7 @@ Conditions:
   EmailProvided: !Not [!Equals [!Ref SolutionAdminEmailAddress, false]]
   SendData: !Equals 
     - !FindInMap [Solution, Data, SendAnonymousData]
-    - 'Yes'
+    - 'No'
   StreamingAnalytics: !Equals [!Ref EnableStreamingAnalytics, 'Yes']
   ConfigureDevMode: !Equals [!Ref SolutionMode, 'Dev']
 
@@ -174,6 +174,7 @@ Resources:
     Type: AWS::Logs::LogGroup
     Properties:
       LogGroupName: !Sub '/aws/lambda/${EventsProcessingFunction}'
+      RetentionInDays: !FindInMap [CloudWatchSettings, LogGroup, RetentionInDays]
       
   
   AnalyticsProcessingFunction:
@@ -607,17 +608,15 @@ Resources:
               Type: string
             - Name: event_type
               Type: string
-            - Name: event_name
-              Type: string
-            - Name: event_version
-              Type: string
             - Name: event_timestamp
               Type: bigint
             - Name: app_version
               Type: string
-            - Name: application_id
+            - Name: backend_version
               Type: string
-            - Name: application_name
+            - Name: platform
+              Type: string
+            - Name: debug_tag
               Type: string
             - Name: event_data 
               Type: string
@@ -637,10 +636,6 @@ Resources:
           jobName:
             - !Ref GameEventsEtlJob
       State: ENABLED
-      Targets: 
-        - 
-          Arn: !Ref Notifications
-          Id: !Sub 'NotificationsTopic-${AWS::StackName}'
   
   GlueCrawlerStatusEvents:
     Type: AWS::Events::Rule
@@ -655,11 +650,7 @@ Resources:
           crawlerName:
             - !Ref EventsCrawler
       State: ENABLED
-      Targets: 
-        - 
-          Arn: !Ref Notifications
-          Id: !Sub 'NotificationsTopic-${AWS::StackName}'
-      
+
   # Glue Crawler to detect changes to the processed events 
   EventsCrawler:
     Type: AWS::Glue::Crawler
@@ -1137,18 +1128,6 @@ Resources:
       sourceS3Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"], "game_events_etl.py"]]
       destinationS3Bucket: !Ref AnalyticsBucket
       destinationS3Key: !Sub 'glue-scripts/game_events_etl.py'
-
-  SendAnonymousData:
-    Type: Custom::LoadLambda
-    Properties:
-      ServiceToken: !GetAtt SolutionHelper.Arn
-      SolutionId: !FindInMap [Solution, Data, ID]
-      UUID: !GetAtt CreateUniqueID.UUID
-      Version: !FindInMap [Solution, Data, Version]
-      AnonymousData: !FindInMap ['Solution', 'Data', 'SendAnonymousData']
-      customAction: 'sendAnonymousMetric'
-      EnableStreamingAnalytics: !Ref EnableStreamingAnalytics
-      GameEventsStreamShardCount: !Ref KinesisStreamShards
     
   # Create a sample API Key in Authorizations table 
   CreateApiAuthorization:
@@ -1706,7 +1685,6 @@ Resources:
               required:
                   - event_id
                   - event_type
-                  - event_name
                   - event_timestamp
               properties:
                 event_id:
@@ -1716,22 +1694,26 @@ Resources:
                 event_type:
                   type: string
                   pattern: "^[A-Za-z0-9-_.]+$"
-                  description: Identifies the type of event
-                event_name:
-                  type: string
-                  pattern: "^[A-Za-z0-9-_.]+$"
                   description: Name of the event that occurred
-                event_version:
-                  type: string
-                  pattern: "^[A-Za-z0-9-_.]+$"
-                  description: An API version for this event format.
+                event_timestamp:
+                  type: number
+                  description: The time in seconds since the Unix epoch at which this event occurred (set by producer of event).                  
                 app_version:
                   type: string
                   pattern: "^[A-Za-z0-9-_.]+$"
-                  description: Version identifier for the application that generated the event
-                event_timestamp:
-                  type: number
-                  description: The time in seconds since the Unix epoch at which this event occurred (set by producer of event).
+                  description: The version of the application sending the event.
+                backend_version: 
+                    type: string
+                    pattern: "^[A-Za-z0-9-_.]+$"
+                    description: Version of the backend sending the event (or to which the client is connected to).
+                platform:
+                    type: string
+                    pattern: "^[A-Za-z0-9-_.]+$"
+                    description: The plataform from which the event is comming.
+                debug_tag:
+                    type: string
+                    pattern: "^[A-Za-z0-9-_.]+$"
+                    description: The debug tag is used for test and debug purpose only.
                 event_data:
                   type: object
           securitySchemes:
@@ -1830,102 +1812,27 @@ Resources:
               METRIC_TIMESTAMP BIGINT,
               METRIC_UNIT_VALUE_INT BIGINT,
               METRIC_UNIT VARCHAR(1024),
-              DIMENSION_APPLICATION_ID VARCHAR(1024),
               DIMENSION_APP_VERSION VARCHAR(1024),
-              DIMENSION_COUNTRY_ID VARCHAR(1024),
-              DIMENSION_CURRENCY_TYPE VARCHAR (1024),
-              DIMENSION_SPELL_ID VARCHAR (1024),
-              DIMENSION_MISSION_ID VARCHAR (1024),
-              DIMENSION_ITEM_ID VARCHAR (1024),
               OUTPUT_TYPE VARCHAR(1024));
               
               -- Total Events
               -- Count of Total Events within period
               CREATE OR REPLACE PUMP "TOTAL_EVENTS_PUMP" AS
-              INSERT INTO "DESTINATION_STREAM" (METRIC_NAME, METRIC_TIMESTAMP, METRIC_UNIT_VALUE_INT, METRIC_UNIT, DIMENSION_APPLICATION_ID, DIMENSION_APP_VERSION, OUTPUT_TYPE)
-              SELECT STREAM 'TotalEvents', UNIX_TIMESTAMP(TIME_WINDOW), COUNT(distinct_stream.event_id) AS unique_count, 'Count', distinct_stream.application_id, distinct_stream.app_version, 'metrics'
+              INSERT INTO "DESTINATION_STREAM" (METRIC_NAME, METRIC_TIMESTAMP, METRIC_UNIT_VALUE_INT, METRIC_UNIT, DIMENSION_APP_VERSION, OUTPUT_TYPE)
+              SELECT STREAM 'TotalEvents', UNIX_TIMESTAMP(TIME_WINDOW), COUNT(distinct_stream.event_id) AS unique_count, 'Count', distinct_stream.app_version, 'metrics'
               FROM (
                   SELECT STREAM DISTINCT
                       rowtime as window_time,
                       "AnalyticsApp_001"."event_id" as event_id,
-                      "AnalyticsApp_001"."application_id" as application_id,
                       "AnalyticsApp_001"."app_version" as app_version,
                       STEP("AnalyticsApp_001".rowtime BY INTERVAL '1' MINUTE) as TIME_WINDOW
                   FROM "AnalyticsApp_001"
               ) as distinct_stream
               GROUP BY 
-                  application_id, 
                   app_version,
                   TIME_WINDOW,
                   STEP(distinct_stream.window_time BY INTERVAL '1' MINUTE);
-              
-              -- Total Logins
-              -- Count of logins within period
-              CREATE OR REPLACE PUMP "LOGIN_PUMP" AS
-              INSERT INTO "DESTINATION_STREAM" (METRIC_NAME, METRIC_TIMESTAMP, METRIC_UNIT_VALUE_INT, METRIC_UNIT, DIMENSION_APPLICATION_ID, DIMENSION_APP_VERSION, OUTPUT_TYPE)
-              SELECT STREAM 'TotalLogins', UNIX_TIMESTAMP(TIME_WINDOW), COUNT(distinct_stream.login_count) AS unique_count, 'Count', distinct_stream.application_id, distinct_stream.app_version, 'metrics'
-              FROM (
-                  SELECT STREAM DISTINCT 
-                    rowtime as window_time, 
-                    "AnalyticsApp_001"."event_id" as login_count, 
-                    "AnalyticsApp_001"."application_id" as application_id,
-                    "AnalyticsApp_001"."app_version" as app_version,
-                    STEP("AnalyticsApp_001".rowtime BY INTERVAL '1' MINUTE) as TIME_WINDOW
-                  FROM "AnalyticsApp_001"
-                  WHERE "AnalyticsApp_001"."event_type" = 'login'
-              ) as distinct_stream 
-              GROUP BY 
-                  application_id,
-                  app_version,
-                  TIME_WINDOW,
-                  STEP(distinct_stream.window_time BY INTERVAL '1' MINUTE);
-              
-              -- Knockouts By Spells
-              -- Get the number of knockouts by each spell used in a knockout in the period
-              CREATE OR REPLACE PUMP "KNOCKOUTS_BY_SPELL_PUMP" AS
-              INSERT INTO "DESTINATION_STREAM" (METRIC_NAME, METRIC_TIMESTAMP, METRIC_UNIT_VALUE_INT, METRIC_UNIT, DIMENSION_SPELL_ID, DIMENSION_APPLICATION_ID, DIMENSION_APP_VERSION, OUTPUT_TYPE)
-              SELECT STREAM 'KnockoutsBySpell', UNIX_TIMESTAMP(TIME_WINDOW), SPELL_COUNT, 'Count', SPELL_ID, application_id, app_version, 'metrics'
-              FROM (
-                  SELECT STREAM
-                    events."spell_id" as SPELL_ID,
-                    events."application_id" as application_id,
-                    events."app_version" as app_version,
-                    count(*) as SPELL_COUNT,
-                    STEP(events.rowtime BY INTERVAL '1' MINUTE) as TIME_WINDOW
-                  FROM "AnalyticsApp_001" events
-                  WHERE events."spell_id" is not NULL
-                  AND events."event_type" = 'user_knockout'
-                  GROUP BY
-                    STEP (events.ROWTIME BY INTERVAL '1' MINUTE),
-                    events."spell_id",
-                    events."application_id",
-                    events."app_version"
-                  HAVING count(*) > 1
-                  ORDER BY STEP (events.ROWTIME BY INTERVAL '1' MINUTE), SPELL_COUNT desc
-              );
-              
-              -- Purchases
-              -- Get all purchases grouped by country over the period
-              CREATE OR REPLACE PUMP "PURCHASES_PER_CURRENCY_PUMP" AS
-              INSERT INTO "DESTINATION_STREAM" (METRIC_NAME, METRIC_TIMESTAMP, METRIC_UNIT_VALUE_INT, METRIC_UNIT, DIMENSION_CURRENCY_TYPE, DIMENSION_APPLICATION_ID, DIMENSION_APP_VERSION, OUTPUT_TYPE)
-              SELECT 'Purchases', UNIX_TIMESTAMP(TIME_WINDOW), PURCHASE_COUNT, 'Count', CURRENCY_TYPE, application_id, app_version, 'metrics' FROM (
-                  SELECT STREAM
-                    events."currency_type" as CURRENCY_TYPE,
-                    events."application_id" as application_id,
-                    events."app_version" as app_version,
-                    count(*) as PURCHASE_COUNT,
-                    STEP(events.rowtime BY INTERVAL '1' MINUTE) as TIME_WINDOW
-                  FROM "AnalyticsApp_001" events
-                  WHERE events."currency_type" is not NULL
-                  AND events."event_type" = 'iap_transaction'
-                  GROUP BY
-                    STEP (events.ROWTIME BY INTERVAL '1' MINUTE),
-                    events."currency_type",
-                    events."application_id",
-                    events."app_version"
-                  HAVING count(*) > 1
-                  ORDER BY STEP (events.ROWTIME BY INTERVAL '1' MINUTE), PURCHASE_COUNT desc
-              );
+
           - {
               Namespace: !Sub '${AWS::StackName}/AWSGameAnalytics',
               Interval: !If [ConfigureDevMode, 1, 5] 
@@ -1934,9 +1841,6 @@ Resources:
         - NamePrefix: AnalyticsApp
           InputSchema:
             RecordColumns:
-              - Name: event_version
-                SqlType: VARCHAR(8)
-                Mapping: $.event.event_version
               - Name: event_id
                 SqlType: VARCHAR(64)
                 Mapping: $.event.event_id
@@ -1949,27 +1853,15 @@ Resources:
               - Name: app_version
                 SqlType: VARCHAR(8)
                 Mapping: $.event.app_version
-              - Name: level_id
-                SqlType: VARCHAR(64)
-                Mapping: $.event.event_data.level_id
-              - Name: country_id
-                SqlType: VARCHAR(64)
-                Mapping: $.event.event_data.country_id
-              - Name: spell_id
-                SqlType: VARCHAR(64)
-                Mapping: $.event.event_data.spell_id
-              - Name: application_id
-                SqlType: VARCHAR(64)
-                Mapping: $.application_id
-              - Name: last_login_time
-                SqlType: BIGINT
-                Mapping: $.event.event_data.last_login_time
-              - Name: currency_type
-                SqlType: VARCHAR(64)
-                Mapping: $.event.event_data.currency_type
-              - Name: currency_amount
-                SqlType: DOUBLE
-                Mapping: $.event.event_data.currency_amount
+              - Name: backend_version
+                SqlType: VARCHAR(8)
+                Mapping: $.event.backend_version
+              - Name: platform
+                SqlType: VARCHAR(8)
+                Mapping: $.event.platform
+              - Name: debug_tag
+                SqlType: VARCHAR(8)
+                Mapping: $.event.debug_tag
             RecordFormat:
               RecordFormatType: JSON
               MappingParameters:
@@ -2042,568 +1934,7 @@ Resources:
         Stage: !FindInMap [ApiConfiguration, StageSettings, StageName]
  
   
-  ####################
-  # METRICS & ALARMS #
-  ####################
-  Notifications:
-    Type: AWS::SNS::Topic
-    Properties:
-      DisplayName: !Sub 'Notifications-${AWS::StackName}'
-      KmsMasterKeyId: !Ref SnsEncryptionKeyAlias
-  
-  SnsEncryptionKey:
-    Type: AWS::KMS::Key
-    Properties: 
-      Description: !Sub 'KMS Key for encrypting SNS for game analytics pipeline - ${AWS::StackName}'
-      Enabled: true
-      EnableKeyRotation: true
-      PendingWindowInDays: 7
-      KeyPolicy:
-        Version: '2012-10-17'
-        Id: default-key-policy
-        Statement:
-        - Sid: Enable IAM User Permissions
-          Effect: Allow
-          Principal:
-            AWS:
-              Fn::Join:
-              - ''
-              - - 'arn:aws:iam::'
-                - Ref: AWS::AccountId
-                - :root
-          Action: '*'
-          Resource: '*'
-        - Sid: Grants KMS permissions to CloudWatch to publish messages to encrypted SNS topic
-          Effect: Allow
-          Principal:
-            Service: 
-             - cloudwatch.amazonaws.com
-             - events.amazonaws.com
-          Action:
-            - 'kms:Decrypt'
-            - 'kms:GenerateDataKey*'
-          Resource: '*'
-  
-  SnsEncryptionKeyAlias:
-    Type: AWS::KMS::Alias
-    Properties: 
-      AliasName: !Sub 'alias/aws_game_analytics/${AWS::StackName}/SnsEncryptionKey'
-      TargetKeyId: !Ref SnsEncryptionKey
-  
-  #Register email to topic if email address is provided
-  SolutionAdminSnsSubscription:
-    Type: AWS::SNS::Subscription
-    Condition: EmailProvided
-    Properties: 
-      Endpoint: !Ref SolutionAdminEmailAddress
-      Protocol: 'email'
-      Region: !Ref AWS::Region
-      TopicArn: !Ref Notifications
-  
-  NotificationsTopicPolicy:
-    Type: AWS::SNS::TopicPolicy
-    Properties:
-      PolicyDocument:
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-                - events.amazonaws.com
-                - cloudwatch.amazonaws.com
-            Action: 'sns:Publish'
-            Resource: '*'
-      Topics:
-        - !Ref Notifications
-  
-  # Filter to detect KinesisAnalyticsErrors logged by Analytics Processing Function
-  KinesisAnalyticsErrorsFilter:
-    Condition: StreamingAnalytics
-    Type: AWS::Logs::MetricFilter
-    Properties:
-      FilterPattern: '{ $.KinesisAnalyticsErrors > 0 }'
-      LogGroupName: !Ref AnalyticsProcessingLogGroup
-      MetricTransformations:
-        - MetricValue: $.KinesisAnalyticsErrors
-          MetricName: 'KinesisAnalyticsErrors'
-          MetricNamespace: !Sub '${AWS::StackName}/AWSGameAnalytics'
-  
-  # Generate Alarm if count of KinesisAnalyticsErrors is greater than 1
-  KinesisAnalyticsErrorsAlarm:
-    Condition: StreamingAnalytics
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'Kinesis Analytics Errors is > 0, as logged by the Analytics Processing function. Stack ${AWS::StackName}'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 1
-      Metrics:
-        - Id: kda_errors
-          MetricStat:
-            Metric:
-              MetricName: KinesisAnalyticsErrors
-              Namespace: !Sub '${AWS::StackName}/AWSGameAnalytics'
-            Period: 300
-            Stat: Sum
-          ReturnData: true
-      Threshold: 0
-      TreatMissingData: notBreaching
-  
-  # Generate Alarms for the solution's Applications and Authorizations DynamoDB tables
-  DynamoDBErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'DynamoDB Errors > 0, for stack ${AWS::StackName}'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 6
-      Metrics:
-        - Id: s1
-          Expression: m1+m2+m3+m4
-        - Id: m1
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: TableName
-                  Value: !Ref AuthorizationsTable
-              MetricName: UserErrors
-              Namespace: AWS/DynamoDB
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m2
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: TableName
-                  Value: !Ref AuthorizationsTable
-              MetricName: SystemErrors
-              Namespace: AWS/DynamoDB
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m3
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: TableName
-                  Value: !Ref ApplicationsTable
-              MetricName: UserErrors
-              Namespace: AWS/DynamoDB
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m4
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: TableName
-                  Value: !Ref ApplicationsTable
-              MetricName: UserErrors
-              Namespace: AWS/DynamoDB
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      Threshold: 0
-      TreatMissingData: notBreaching
-  
-  # Track the Applications Table for any throttling caused by Events Processing queries
-  ApplicationsOnDemandTableReadLimitAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub 'Alarm when consumed table reads approach the account limit for Applications table, for stack ${AWS::StackName}'
-      AlarmActions:
-        - !Ref Notifications
-      Metrics:
-        - Id: 'e1'
-          Expression: '(((m1 / 300) / m2) * 100)'
-          Label: TableReadsOverMaxReadLimit
-        - Id: 'm1'
-          MetricStat:
-            Metric:
-              Namespace: AWS/DynamoDB
-              MetricName: ConsumedReadCapacityUnits
-              Dimensions:
-                - Name: TableName
-                  Value: !Ref ApplicationsTable
-            Period: 300
-            Stat: SampleCount
-            Unit: Count
-          ReturnData: False
-        - Id: 'm2'
-          MetricStat:
-            Metric:
-              Namespace: AWS/DynamoDB
-              MetricName: AccountMaxTableLevelReads
-            Period: 300
-            Stat: Maximum
-          ReturnData: False
-      EvaluationPeriods: 2
-      Threshold: 90
-      ComparisonOperator: 'GreaterThanThreshold'
-  
-  # Track the ApiKeyValues DynamoDB GSI for any throttling caused by Lamdba Authorizer queries
-  AuthorizationsGSIOnDemandTableReadLimitAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub 'Alarm when consumed table reads approach the account limit for Authorizations GSI, for stack ${AWS::StackName}'
-      AlarmActions:
-        - !Ref Notifications
-      Metrics:
-        - Id: 'e1'
-          Expression: '(((m1 / 300) / m2) * 100)'
-          Label: TableReadsOverMaxReadLimit
-        - Id: 'm1'
-          MetricStat:
-            Metric:
-              Namespace: AWS/DynamoDB
-              MetricName: 'ConsumedReadCapacityUnits'
-              Dimensions:
-                - Name: 'TableName'
-                  Value: !Ref AuthorizationsTable
-                - Name: 'GlobalSecondaryIndexName'
-                  Value: 'ApiKeyValues'
-            Period: 300
-            Stat: 'SampleCount'
-            Unit: 'Count'
-          ReturnData: False
-        - Id: 'm2'
-          MetricStat:
-            Metric:
-              Namespace: 'AWS/DynamoDB'
-              MetricName: 'AccountMaxTableLevelReads'
-            Period: 300
-            Stat: 'Maximum'
-          ReturnData: False
-      EvaluationPeriods: 2
-      Threshold: 90
-      ComparisonOperator: 'GreaterThanThreshold'
-      
-  ApiGateway4XXErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'API Gateway 4XX Errors > 1%, for stack ${AWS::StackName}'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 6
-      Metrics:
-        - Id: s1
-          Expression: m1/m2*100
-        - Id: m1
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub 'GameAnalyticsApi-${AWS::StackName}'
-              MetricName: 4XXError
-              Namespace: AWS/ApiGateway
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m2
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub 'GameAnalyticsApi-${AWS::StackName}'
-              MetricName: Count
-              Namespace: AWS/ApiGateway
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      Threshold: 1
-      TreatMissingData: notBreaching
 
-  ApiGateway5XXErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'API Gateway 5XX Errors > 1%, for stack ${AWS::StackName}'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 6
-      Metrics:
-        - Id: s1
-          Expression: m1/m2*100
-        - Id: m1
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub 'GameAnalyticsApi-${AWS::StackName}'
-              MetricName: 5XXError
-              Namespace: AWS/ApiGateway
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m2
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: ApiName
-                  Value: !Sub 'GameAnalyticsApi-${AWS::StackName}'
-              MetricName: Count
-              Namespace: AWS/ApiGateway
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      Threshold: 1
-      TreatMissingData: notBreaching
-  
-  KinesisFirehoseFailedConversions:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub 'Alarm to track when Firehose Format Conversion fails, for stack ${AWS::StackName}'
-      MetricName: FailedConversion.Records
-      Dimensions:
-        - Name: DeliveryStreamName
-          Value: !Ref GameEventsFirehose
-      Namespace: AWS/Firehose
-      Statistic: Sum
-      Period: 60
-      EvaluationPeriods: 1
-      ComparisonOperator: GreaterThanThreshold
-      Threshold: 0
-      TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref Notifications
-      ActionsEnabled: true
-  
-  KinesisFirehoseS3DataFreshness:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub 'Alarm to track when age of oldest record delivered to S3 exceeds 15 minutes for two consecutive periods, for stack ${AWS::StackName}'
-      MetricName: DeliveryToS3.DataFreshness
-      Dimensions:
-        - Name: DeliveryStreamName
-          Value: !Ref GameEventsFirehose
-      Namespace: AWS/Firehose
-      Statistic: Average
-      Period: 300
-      EvaluationPeriods: 2
-      ComparisonOperator: GreaterThanThreshold
-      Threshold: 900
-      TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref Notifications
-      ActionsEnabled: true
-    
-  KinesisReadProvisionedThroughputExceeded:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub 'Kinesis stream is being throttled on reads and may need to be be scaled to support more read throughput, for stack ${AWS::StackName}'
-      MetricName: ReadProvisionedThroughputExceeded
-      Dimensions:
-        - Name: StreamName
-          Value: !Ref GameEventsStream
-      Namespace: AWS/Kinesis
-      Statistic: Maximum
-      Period: 60
-      EvaluationPeriods: 1
-      ComparisonOperator: GreaterThanThreshold
-      Threshold: 0
-      TreatMissingData: notBreaching
-      AlarmActions:
-        - !Ref Notifications
-      ActionsEnabled: true
-  
-  KinesisWriteProvisionedThroughputExceeded:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmDescription: !Sub 'Kinesis stream is being throttled on writes and may need to be be scaled to support more write throughput, for stack ${AWS::StackName}'
-      MetricName: WriteProvisionedThroughputExceeded
-      Dimensions:
-        - Name: StreamName
-          Value: !Ref GameEventsStream
-      Namespace: AWS/Kinesis
-      Statistic: Maximum
-      Period: 60
-      EvaluationPeriods: 1
-      ComparisonOperator: GreaterThanThreshold
-      Threshold: 0
-      TreatMissingData: notBreaching
-      AlarmActions:
-          - !Ref Notifications
-      ActionsEnabled: true
-
-  StreamingAnalyticsLambdaErrorsAlarm:
-    Condition: StreamingAnalytics
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'Lambda Errors > 0, for stack ${AWS::StackName} streaming analytics'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 6
-      Metrics:
-        - Id: s1
-          Expression: m1
-        - Id: m1
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref AnalyticsProcessingFunction
-              MetricName: Errors
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      Threshold: 0
-      TreatMissingData: notBreaching
-
-  LambdaErrorsAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'Lambda Errors > 0, for stack ${AWS::StackName}'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 6
-      Metrics:
-        - Id: s1
-          Expression: m1+m2+m3+m4
-        - Id: m1
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref EventsProcessingFunction
-              MetricName: Errors
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m2
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref LambdaAuthorizer
-              MetricName: Errors
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m3
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref ApplicationAdminServiceFunction
-              MetricName: Errors
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m4
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref GluePartitionCreator
-              MetricName: Errors
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      Threshold: 0
-      TreatMissingData: notBreaching
-  
-  StreamingAnalyticsLambdaThrottlesAlarm:
-    Condition: StreamingAnalytics
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'Lambda Throttles > 0, for stack ${AWS::StackName} streaming analytics'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 2
-      Metrics:
-        - Id: s1
-          Expression: m1
-        - Id: m1
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref AnalyticsProcessingFunction
-              MetricName: Throttles
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      Threshold: 0
-      TreatMissingData: notBreaching
-
-  LambdaThrottlesAlarm:
-    Type: AWS::CloudWatch::Alarm
-    Properties:
-      AlarmActions:
-        - !Ref Notifications
-      AlarmDescription: !Sub 'Lambda Throttles > 0, for stack ${AWS::StackName}'
-      ComparisonOperator: GreaterThanThreshold
-      DatapointsToAlarm: 1
-      EvaluationPeriods: 2
-      Metrics:
-        - Id: s1
-          Expression: m1+m2+m3+m4
-        - Id: m1
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref EventsProcessingFunction
-              MetricName: Throttles
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m2
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref LambdaAuthorizer
-              MetricName: Throttles
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m3
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref ApplicationAdminServiceFunction
-              MetricName: Throttles
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-        - Id: m4
-          MetricStat:
-            Metric:
-              Dimensions:
-                - Name: FunctionName
-                  Value: !Ref GluePartitionCreator
-              MetricName: Throttles
-              Namespace: AWS/Lambda
-            Period: 300
-            Stat: Sum
-          ReturnData: false
-      Threshold: 0
-      TreatMissingData: notBreaching
-  
 Outputs:
   AnalyticsBucket:
     Description: 'S3 Bucket for game analytics storage'
@@ -2627,11 +1958,11 @@ Outputs:
   GlueWorkflowConsoleLink:
     Description: Link to the AWS Glue Workflows console page to view details of the workflow
     Value: !Sub 'https://console.aws.amazon.com/glue/home?region=${AWS::Region}#etl:tab=workflows;workflowView=workflow-list'
-  TestApiKeyId:
+  ApiKeyId:
     Description: 'The identifier of the test api key that was created with the solution.'
     Value: !GetAtt CreateApiAuthorization.apiKeyId
     Condition: ConfigureDevMode
-  TestApplicationId:
+  ApplicationId:
     Description: 'The identifier of the test application that was created with the solution'
     Value: !GetAtt CreateDefaultApplication.application_id
     Condition: ConfigureDevMode
