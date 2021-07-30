@@ -56,9 +56,6 @@ Mappings:
   StreamIngestion:
     FirehoseSettings: 
       S3BackupMode: 'Disabled' # Enabled/Disabled
-  ApiConfiguration:
-    StageSettings:
-      StageName: 'live'
     
 Conditions:
   EmailProvided: !Not [!Equals [!Ref SolutionAdminEmailAddress, false]]

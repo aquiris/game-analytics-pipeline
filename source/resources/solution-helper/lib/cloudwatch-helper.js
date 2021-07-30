@@ -98,7 +98,6 @@ class cloudwatchHelper {
         metrics: [
           ['AWS/Kinesis', 'IncomingRecords', 'StreamName', event.Kinesis.GameEventsStream, {id: 'records', color: '#2ca02c', label: 'Events Stream Incoming Records (Kinesis)'}],
           ['AWS/Firehose', 'DeliveryToS3.Records', 'DeliveryStreamName', event.Kinesis.GameEventsFirehose, {id: 'delivered', label: 'Firehose Records Delivered to S3', color: '#17becf'}],
-          ['AWS/ApiGateway', 'Count', 'ApiName', event.GameAnalyticsApi.Name, 'Resource', '/applications/{applicationId}/events', 'Stage', event.GameAnalyticsApi.Stage, 'Method', 'POST', {label: 'Events REST API Request Count', color: '#1f77b4'}]
         ],
         view: 'timeSeries',
         stacked: false,

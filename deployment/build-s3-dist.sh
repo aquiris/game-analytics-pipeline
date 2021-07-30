@@ -106,14 +106,6 @@ do_cmd cd $source_dir/services/api/admin
 do_cmd npm run build
 do_cmd cp dist/admin.zip $build_dist_dir/admin.zip
 
-
-echo "------------------------------------------------------------------------------"  
-echo "Packaging Lambda Function - Lambda Authorizer"  
-echo "------------------------------------------------------------------------------"  
-do_cmd cd $source_dir/services/api/lambda-authorizer
-do_cmd npm run build
-do_cmd cp dist/lambda-authorizer.zip $build_dist_dir/lambda-authorizer.zip
-
 echo "------------------------------------------------------------------------------"  
 echo "Packaging Lambda Function - Glue Partition Creator"  
 echo "------------------------------------------------------------------------------"  
