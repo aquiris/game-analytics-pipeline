@@ -288,7 +288,6 @@ Resources:
               - dynamodb:PutItem
             Resource:
               - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ApplicationsTable}'
-              - !Sub 'arn:${AWS::Partition}:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${AuthorizationsTable}'
           - !If
             - StreamingAnalytics
             - Sid: KinesisAnalytics
@@ -338,57 +337,7 @@ Resources:
               - cloudwatch:DeleteDashboards
             Resource:
               - !Sub 'arn:${AWS::Partition}:cloudwatch::${AWS::AccountId}:dashboard/PipelineOpsDashboard_${AWS::StackName}'
-   
-  ApplicationAdminServiceFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      Handler: index.handler
-      Description: 'Application admin service'
-      Runtime: nodejs12.x
-      CodeUri: 
-        Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
-        Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"], "admin.zip"]]
-      Timeout: 60
-      MemorySize: 128
-      Environment:
-        Variables:
-          AUTHORIZATIONS_TABLE: !Ref AuthorizationsTable
-          APPLICATION_AUTHORIZATIONS_INDEX: 'ApplicationAuthorizations'
-          APPLICATIONS_TABLE: !Ref ApplicationsTable
-      Policies:
-        Version: 2012-10-17
-        Statement:
-          - Sid: CWLogs
-            Effect: Allow
-            Action:
-              - logs:CreateLogGroup
-              - logs:CreateLogStream
-              - logs:PutDestination
-              - logs:PutLogEvents
-            Resource:
-              - !Sub 'arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/*'
-          - Sid: DynamoDbAccess
-            Effect: Allow
-            Action:
-              - dynamodb:BatchGetItem
-              - dynamodb:GetItem
-              - dynamodb:GetRecords
-              - dynamodb:Query
-              - dynamodb:UpdateItem
-              - dynamodb:DeleteItem
-              - dynamodb:Scan
-              - dynamodb:PutItem
-            Resource:
-              - !GetAtt ApplicationsTable.Arn
-              - !GetAtt AuthorizationsTable.Arn
-              - !Sub '${AuthorizationsTable.Arn}/index/*'
-
-  ApplicationAdminServiceServiceFunctionLogGroup:
-    Type: AWS::Logs::LogGroup
-    Properties:
-      LogGroupName: !Sub '/aws/lambda/${ApplicationAdminServiceFunction}'
-      RetentionInDays: !FindInMap [CloudWatchSettings, LogGroup, RetentionInDays]
-      
+     
   #############
   # S3 BUCKET #
   #############
@@ -1016,50 +965,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
-  
-  AuthorizationsTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      BillingMode: PAY_PER_REQUEST
-      AttributeDefinitions:
-        - AttributeName: api_key_id
-          AttributeType: S
-        - AttributeName: application_id
-          AttributeType: S
-        - AttributeName: api_key_value
-          AttributeType: S
-      KeySchema:
-        - AttributeName: api_key_id
-          KeyType: HASH
-        - AttributeName: application_id
-          KeyType: RANGE
-      GlobalSecondaryIndexes:
-        - IndexName: ApplicationAuthorizations
-          KeySchema:
-            - AttributeName: application_id
-              KeyType: HASH
-            - AttributeName: api_key_id
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
-        - IndexName: ApiKeyValues
-          KeySchema:
-            - AttributeName: api_key_value
-              KeyType: HASH
-            - AttributeName: application_id
-              KeyType: RANGE
-          Projection:
-            ProjectionType: INCLUDE
-            NonKeyAttributes:
-              - api_key_id
-              - enabled
-      PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: true
-      SSESpecification:
-        SSEEnabled: true
-        SSEType: KMS
-  
-  
+ 
   ####################
   # Custom Resources #
   ####################
@@ -1080,21 +986,6 @@ Resources:
       destinationS3Bucket: !Ref AnalyticsBucket
       destinationS3Key: !Sub 'glue-scripts/game_events_etl.py'
     
-  # Create a sample API Key in Authorizations table 
-  CreateApiAuthorization:
-    DependsOn:
-      - CreateDefaultApplication
-    Type: Custom::LoadLambda
-    Condition: ConfigureDevMode
-    Properties:
-      ServiceToken: !GetAtt SolutionHelper.Arn
-      authorizationsTable: !Ref AuthorizationsTable
-      application_id: !GetAtt CreateDefaultApplication.application_id
-      application_name: !GetAtt CreateDefaultApplication.application_name
-      customAction: CreateApiAuthorization
-      key_name: !Sub 'default-key-${AWS::StackName}'
-      key_description: 'Auto-generated api key'
-  
   # Create a sample application in the Applications Table
   CreateDefaultApplication:
     Type: Custom::LoadLambda
@@ -1310,10 +1201,6 @@ Outputs:
   GlueWorkflowConsoleLink:
     Description: Link to the AWS Glue Workflows console page to view details of the workflow
     Value: !Sub 'https://console.aws.amazon.com/glue/home?region=${AWS::Region}#etl:tab=workflows;workflowView=workflow-list'
-  ApiKeyId:
-    Description: 'The identifier of the test api key that was created with the solution.'
-    Value: !GetAtt CreateApiAuthorization.apiKeyId
-    Condition: ConfigureDevMode
   ApplicationId:
     Description: 'The identifier of the test application that was created with the solution'
     Value: !GetAtt CreateDefaultApplication.application_id
