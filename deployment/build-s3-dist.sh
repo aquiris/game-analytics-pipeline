@@ -100,13 +100,6 @@ do_cmd npm run build
 do_cmd cp dist/events-processing.zip $build_dist_dir/events-processing.zip
 
 echo "------------------------------------------------------------------------------"  
-echo "Packaging Lambda Function - Applications admin service"  
-echo "------------------------------------------------------------------------------"  
-do_cmd cd $source_dir/services/api/admin
-do_cmd npm run build
-do_cmd cp dist/admin.zip $build_dist_dir/admin.zip
-
-echo "------------------------------------------------------------------------------"  
 echo "Packaging Lambda Function - Glue Partition Creator"  
 echo "------------------------------------------------------------------------------"  
 do_cmd cd $source_dir/services/data-lake/glue-partition-creator
