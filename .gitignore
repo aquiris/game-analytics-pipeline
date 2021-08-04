@@ -7,3 +7,4 @@ source/demo/env
 deployment/dist
 deployment/global-s3-assets
 deployment/regional-s3-assets
+package-lock.json
