@@ -128,6 +128,12 @@ class Event {
         if (event.hasOwnProperty('debug_tag')) {
             transformed_event.debug_tag = String(event.debug_tag);
         }
+        if (event.hasOwnProperty('environment')) {
+            transformed_event.environment = String(event.environment);
+        }
+        if (event.hasOwnProperty('build_type')) {
+            transformed_event.build_type = String(event.build_type);
+        }
         if(event.hasOwnProperty('event_data')){
           transformed_event.event_data = event.event_data;
         }
@@ -172,6 +178,12 @@ class Event {
         }
         if (event.hasOwnProperty('debug_tag')) {
           unregistered_format.debug_tag = String(event.debug_tag);
+        }
+        if (event.hasOwnProperty('environment')) {
+          unregistered_format.environment = String(event.environment);
+        }
+        if (event.hasOwnProperty('build_type')) {
+          unregistered_format.build_type = String(event.build_type);
         }
         if(event.hasOwnProperty('event_data')){
           unregistered_format.event_data = event.event_data;

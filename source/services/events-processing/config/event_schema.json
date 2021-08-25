@@ -1,64 +1,74 @@
 {
-    "$schema": "http://json-schema.org/draft-04/schema#",
-    "title": "Game Analytics JSON Event Schema",
-    "description": "Format of events that are ingested to the AWS Game Analytics Pipeline",
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {
-        "event": {
-            "$ref": "#/definitions/event"
-        },
-        "application_id": {
-            "type": "string",
-            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
-            "description": "The application identifier (UUID) this event is associated with"
-        }
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "Game Analytics JSON Event Schema",
+  "description": "Format of events that are ingested to the AWS Game Analytics Pipeline",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "event": {
+      "$ref": "#/definitions/event"
     },
-    "required": [ "event", "application_id" ],
-    "definitions": {
-        "event": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-                "event_id": {
-                    "type": "string",
-                    "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
-                    "description": "The unique identifier for the event, formatted as UUID v4 string."
-                },
-                "event_type": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9-_.]+$",
-                    "description": "Name of the event that occurred"
-                },
-                "event_timestamp": {
-                    "type": "number",
-                    "description": "The time in seconds since the Unix epoch at which this event occurred (set by producer of event)."
-                },
-                "app_version": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9-_.]+$",
-                    "description": "The version of the application sending the event."
-                },
-                "backend_version": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9-_.]+$",
-                    "description": "The version of the backend sending the event (or to which the client is connected to)."
-                },
-                "platform": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9-_.]+$",
-                    "description": "The platform from which the event is coming."
-                },
-                "debug_tag": {
-                    "type": "string",
-                    "pattern": "^[A-Za-z0-9-_.]+$",
-                    "description": "The debug tag is used for test and debug purpose only."
-                },
-                "event_data": {
-                    "type": "object"
-                }
-            },
-            "required": [ "event_id", "event_type", "event_timestamp", "app_version", "backend_version", "platform", "event_data" ]
-        }
+    "application_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "description": "The application identifier (UUID) this event is associated with"
     }
+  },
+  "required": [ "event", "application_id" ],
+  "definitions": {
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+          "description": "The unique identifier for the event, formatted as UUID v4 string."
+        },
+        "event_type": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-_.]+$",
+          "description": "Name of the event that occurred"
+        },
+        "event_timestamp": {
+          "type": "number",
+          "description": "The time in seconds since the Unix epoch at which this event occurred (set by producer of event)."
+        },
+        "app_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-_.]+$",
+          "description": "The version of the application sending the event."
+        },
+        "backend_version": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-_.]+$",
+          "description": "The version of the backend sending the event (or to which the client is connected to)."
+        },
+        "platform": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-_.]+$",
+          "description": "The platform from which the event is coming."
+        },
+        "debug_tag": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-_.]+$",
+          "description": "The debug tag is used for test and debug purpose only."
+        },
+        "environment": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-_.]+$",
+          "description": "Build environment."
+        },
+        "build_type": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9-_.]+$",
+          "description": "If it is production or sandbox."
+        },
+        "event_data": {
+          "type": "object"
+        }
+      },
+      "required": [ "event_id", "event_type", "event_timestamp", "app_version", "backend_version", "platform", "event_data" ]
+    }
+  }
 }

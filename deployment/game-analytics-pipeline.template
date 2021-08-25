@@ -518,6 +518,10 @@ Resources:
               Type: string
             - Name: debug_tag
               Type: string
+            - Name: environment
+              Type: string
+            - Name: build_type
+              Type: string
             - Name: event_data 
               Type: string
             - Name: metadata
@@ -1109,6 +1113,12 @@ Resources:
               - Name: debug_tag
                 SqlType: VARCHAR(8)
                 Mapping: $.event.debug_tag
+              - Name: build_type
+                SqlType: VARCHAR(8)
+                Mapping: $.event.build_type
+              - Name: environment
+                SqlType: VARCHAR(8)
+                Mapping: $.event.environment
             RecordFormat:
               RecordFormatType: JSON
               MappingParameters:
