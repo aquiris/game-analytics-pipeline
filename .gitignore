@@ -1,10 +1,20 @@
 /.vs
 *.pyc
 *.d.ts
-*.zip
-node_modules
 source/demo/env
-deployment/dist
-deployment/global-s3-assets
-deployment/regional-s3-assets
 package-lock.json
+
+# compiled output
+**/global-s3-assets
+**/regional-s3-assets
+**/tmp
+**/env
+**/node_modules
+**/dist
+**/open-source
+**/.zip
+**/.DS_Store
+**/.vscode
+**/__pycache__
+**/.lambda_package
+**/.package-lock.json
