@@ -1,14 +1,14 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema#",
-  "title": "Game Analytics JSON Event Schema",
-  "description": "Format of events that are ingested to the AWS Game Analytics Pipeline",
-  "type": "object",
-  "additionalProperties": false,
-  "properties": {
-    "event": {
-      "$ref": "#/definitions/event"
-    },
-    "application_id": {
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"title": "Game Analytics JSON Event Schema",
+	"description": "Format of events that are ingested to the AWS Game Analytics Pipeline",
+	"type": "object",
+	"additionalProperties": false,
+	"properties": {
+		"event": { 
+			"$ref": "#/definitions/event"
+		},
+		"application_id": {
       "type": "string",
       "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
       "description": "The application identifier (UUID) this event is associated with"
