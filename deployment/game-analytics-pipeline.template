@@ -67,7 +67,7 @@ Conditions:
 
 Globals:
   Function:
-    Runtime: nodejs14.x
+    Runtime: nodejs16.x
     Tracing: Active
     Environment:
       Variables:
@@ -83,7 +83,7 @@ Resources:
     Properties:
       Handler: index.handler
       Description: 'Function creates a new date-based partition in Glue Database based on UTC Year/Month/Day'
-      Runtime: nodejs14.x
+      Runtime: nodejs16.x
       CodeUri: 
         Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
         Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"], "glue-partition-creator.zip"]]
@@ -141,7 +141,7 @@ Resources:
     Properties:
       Handler: index.handler
       Description: 'Function to process and transform raw events before they get written to S3'
-      Runtime: nodejs14.x
+      Runtime: nodejs16.x
       CodeUri: 
         Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
         Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"], "events-processing.zip"]]
@@ -206,7 +206,7 @@ Resources:
       Description: Consumes outputs from Kinesis Data Analytics application for processing
       Handler: index.handler
       MemorySize: 128
-      Runtime: nodejs14.x
+      Runtime: nodejs16.x
       Timeout: 60
       Role: !GetAtt AnalyticsProcessingRole.Arn
     Metadata:
@@ -282,7 +282,7 @@ Resources:
         Bucket: !Join ["-", [!FindInMap ["SourceCode", "General", "S3Bucket"], Ref: "AWS::Region"]]
         Key: !Join ["/", [!FindInMap ["SourceCode", "General", "KeyPrefix"], "solution-helper.zip"]]
       Handler: index.handler
-      Runtime: nodejs14.x
+      Runtime: nodejs16.x
       Timeout: 300
       MemorySize: 128
       Environment:
