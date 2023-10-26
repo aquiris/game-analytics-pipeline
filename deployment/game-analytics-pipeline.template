@@ -62,8 +62,6 @@ Mappings:
       Default: 'game-analytics-pipeline'
     Contact:
       Default: '%%CONTACT_TAG%%'
-    EUID:
-      Default: '%%EUID_TAG%%'
     Owner:
       Default: '%%OWNER_TAG%%'
     ResourceName:
@@ -145,7 +143,6 @@ Resources:
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:catalog'
       Tags:
         Contact: !FindInMap [TagsSettings, Contact, Default]
-        EUID: !FindInMap [TagsSettings, EUID, Default]
         Name: !Join ["-", [!FindInMap [TagsSettings, ResourceName, Lambda], !FindInMap [TagsSettings, Environment, !Ref SolutionMode]]]
         Owner: !FindInMap [TagsSettings, Owner, Default]
         Service: !FindInMap [TagsSettings, Service, Default]
@@ -196,7 +193,6 @@ Resources:
               - !GetAtt ApplicationsTable.Arn
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
-        EUID: !FindInMap [ TagsSettings, EUID, Default ]
         Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], !FindInMap [TagsSettings, Environment, !Ref SolutionMode] ] ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
@@ -238,7 +234,6 @@ Resources:
       Role: !GetAtt AnalyticsProcessingRole.Arn
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
-        EUID: !FindInMap [ TagsSettings, EUID, Default ]
         Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], !FindInMap [TagsSettings, Environment, !Ref SolutionMode] ] ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
@@ -403,7 +398,6 @@ Resources:
               - !Sub 'arn:${AWS::Partition}:cloudwatch::${AWS::AccountId}:dashboard/PipelineOpsDashboard_${AWS::StackName}'
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
-        EUID: !FindInMap [ TagsSettings, EUID, Default ]
         Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], !FindInMap [TagsSettings, Environment, !Ref SolutionMode] ] ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
