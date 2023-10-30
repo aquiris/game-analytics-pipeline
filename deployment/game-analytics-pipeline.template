@@ -66,9 +66,6 @@ Mappings:
       Default: '%%OWNER_TAG%%'
     ResourceName:
       Lambda: 'lambda-function'
-    Environment:
-      Dev: 'development'
-      Prod: 'production'
     
 Conditions:
   EmailProvided: !Not [!Equals [!Ref SolutionAdminEmailAddress, false]]
@@ -142,10 +139,10 @@ Resources:
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:database/${GameEventsDatabase}'
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:catalog'
       Tags:
-        Contact: !FindInMap [TagsSettings, Contact, Default]
-        Name: !Join ["-", [!FindInMap [TagsSettings, ResourceName, Lambda], !FindInMap [TagsSettings, Environment, !Ref SolutionMode]]]
-        Owner: !FindInMap [TagsSettings, Owner, Default]
-        Service: !FindInMap [TagsSettings, Service, Default]
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -193,7 +190,7 @@ Resources:
               - !GetAtt ApplicationsTable.Arn
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
-        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], !FindInMap [TagsSettings, Environment, !Ref SolutionMode] ] ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
@@ -234,7 +231,7 @@ Resources:
       Role: !GetAtt AnalyticsProcessingRole.Arn
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
-        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], !FindInMap [TagsSettings, Environment, !Ref SolutionMode] ] ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
@@ -398,7 +395,7 @@ Resources:
               - !Sub 'arn:${AWS::Partition}:cloudwatch::${AWS::AccountId}:dashboard/PipelineOpsDashboard_${AWS::StackName}'
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
-        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], !FindInMap [TagsSettings, Environment, !Ref SolutionMode] ] ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
      
