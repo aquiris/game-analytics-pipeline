@@ -68,7 +68,10 @@ sed -i -e $replace $template_dist_dir/*.template
 replace="s/%%CONTACT_TAG%%/$4/g"
 echo "sed -i -e $replace $template_dist_dir/*.template"
 sed -i -e $replace $template_dist_dir/*.template
-replace="s/%%OWNER_TAG%%/$6/g"
+replace="s/%%OWNER_TAG%%/$5/g"
+echo "sed -i -e $replace $template_dist_dir/*.template"
+sed -i -e $replace $template_dist_dir/*.template
+replace="s/%%ENV_TAG%%/$6/g"
 echo "sed -i -e $replace $template_dist_dir/*.template"
 sed -i -e $replace $template_dist_dir/*.template
 
