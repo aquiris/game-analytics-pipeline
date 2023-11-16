@@ -62,6 +62,8 @@ Mappings:
       Default: 'game-analytics-pipeline'
     Contact:
       Default: '%%CONTACT_TAG%%'
+    EUID:
+      Default: '%%EUID_TAG%%'
     Owner:
       Default: '%%OWNER_TAG%%'
     ResourceName:
@@ -141,6 +143,7 @@ Resources:
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
         Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
@@ -191,6 +194,7 @@ Resources:
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
         Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
@@ -232,6 +236,7 @@ Resources:
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
         Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
@@ -396,6 +401,7 @@ Resources:
       Tags:
         Contact: !FindInMap [ TagsSettings, Contact, Default ]
         Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, Lambda ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
         Owner: !FindInMap [ TagsSettings, Owner, Default ]
         Service: !FindInMap [ TagsSettings, Service, Default ]
      
