@@ -128,6 +128,8 @@ Resources:
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:table/${GameEventsDatabase}/*'
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:database/${GameEventsDatabase}'
                 - !Sub 'arn:${AWS::Partition}:glue:${AWS::Region}:${AWS::AccountId}:catalog'
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%GluePartitionCreator'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -173,6 +175,8 @@ Resources:
               - dynamodb:Scan
             Resource:
               - !GetAtt ApplicationsTable.Arn
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%EventsProcessingFunction'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -209,6 +213,8 @@ Resources:
       Runtime: nodejs16.x
       Timeout: 60
       Role: !GetAtt AnalyticsProcessingRole.Arn
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%AnalyticsProcessingFunction'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -256,6 +262,9 @@ Resources:
                   - xray:GetSamplingTargets
                 Resource: 
                   - '*'
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%AnalyticsProcessingRole'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -268,6 +277,9 @@ Resources:
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AnalyticsProcessingFunction}'
       RetentionInDays: !FindInMap [CloudWatchSettings, LogGroup, RetentionInDays]
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%AnalyticsProcessingLogGroup'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -368,6 +380,8 @@ Resources:
               - cloudwatch:DeleteDashboards
             Resource:
               - !Sub 'arn:${AWS::Partition}:cloudwatch::${AWS::AccountId}:dashboard/PipelineOpsDashboard_${AWS::StackName}'
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%SolutionHelper'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -427,6 +441,9 @@ Resources:
             NoncurrentVersionTransitions:
               - StorageClass: INTELLIGENT_TIERING
                 TransitionInDays: 7
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%AnalyticsBucket'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -466,6 +483,9 @@ Resources:
             NoncurrentVersionTransitions:
               - StorageClass: STANDARD_IA
                 TransitionInDays: 30
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%SolutionLogsBucket'
   
   ##########
   # Athena #
@@ -483,6 +503,9 @@ Resources:
           EncryptionConfiguration: 
             EncryptionOption: SSE_S3
           OutputLocation: !Sub 's3://${AnalyticsBucket}/athena_query_results/'
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%GameAnalyticsWorkgroup'
   
   # Create the Athena Named Queries in the Workgroup 
   CreateAthenaQueries:
@@ -617,6 +640,8 @@ Resources:
         UpdateBehavior: 'UPDATE_IN_DATABASE'
         DeleteBehavior: 'LOG'
       Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%EventsCrawler'
   
   GlueCrawlerRole:
     Type: AWS::IAM::Role
@@ -686,6 +711,9 @@ Resources:
                   - logs:PutLogEvents
                 Resource: 
                   - !Sub 'arn:*:logs:*:*:/aws-glue/*'
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%GlueCrawlerRole'
             
   # Glue Workflow to organize ETL Job and Crawlers for processing game events   
   GameEventsWorkflow:
@@ -703,6 +731,8 @@ Resources:
         '--glue_tmp_prefix': !FindInMap [GlueSettings, LocationS3Prefix, EtlTempS3Prefix]
         '--job-bookmark-option': 'job-bookmark-enable'
         '--TempDir': !Join ['', [!Sub 's3://${AnalyticsBucket}/', !FindInMap [GlueSettings, LocationS3Prefix, EtlTempS3Prefix]]]
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%GameEventsWorkflow'
 
   GameEventsCrawlerTrigger:
     Type: AWS::Glue::Trigger
@@ -718,6 +748,8 @@ Resources:
           - LogicalOperator: EQUALS
             JobName: !Ref GameEventsEtlJob
             State: SUCCEEDED
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%GameEventsCrawlerTrigger'
   
   GameEventsTriggerETLJob:
     Type: AWS::Glue::Trigger
@@ -727,6 +759,8 @@ Resources:
       Description: !Sub 'Triggers the start of ETL job to process raw_events, for stack ${AWS::StackName}.'
       Actions:
         - JobName: !Ref GameEventsEtlJob
+      Tags:
+        Name: '%%NAME_TAG_PREFIX%%GameEventsTriggerETLJob'
   
   # IAM Role allowing Glue ETL Job to access Analytics Bucket      
   GameEventsEtlRole:
@@ -791,6 +825,9 @@ Resources:
                   - kms:GenerateDataKey
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/glue'
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%GameEventsEtlRole'
   
   # Invoke the GluePartitionCreator function to create date-based Glue Partition for current date (UTC)
   CreateGluePartition:
@@ -850,6 +887,9 @@ Resources:
       StreamEncryption:
         EncryptionType: KMS
         KeyId: alias/aws/kinesis
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%GameEventsStream'
         
   GameEventsFirehoseRole:
     Type: AWS::IAM::Role
@@ -911,11 +951,17 @@ Resources:
                 Action: logs:PutLogEvents
                 Resource: !GetAtt FirehoseLogGroup.Arn
             
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%GameEventsFirehoseRole'
   FirehoseLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: !FindInMap [CloudWatchSettings, LogGroup, RetentionInDays]
       LogGroupName: !Sub '/aws/kinesisfirehose/${AWS::StackName}-Ingestion'
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%FirehoseLogGroup'
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -999,6 +1045,9 @@ Resources:
             TableName: !Ref GameRawEventsTable
             Region: !Ref AWS::Region
             VersionId: LATEST
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%GameEventsFirehose'
 
   ###################
   # DYNAMODB TABLES #
@@ -1018,6 +1067,9 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%ApplicationsTable'
  
   ####################
   # Custom Resources #
@@ -1216,6 +1268,9 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AnalyticsProcessingFunction}'
                   - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AnalyticsProcessingFunction}:*'
+      Tags:
+        - Key: Name
+          Value: '%%NAME_TAG_PREFIX%%KinesisAnalyticsRole'
   
   ##############
   # DASHBOARDS #
