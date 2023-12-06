@@ -65,6 +65,9 @@ sed -i -e $replace $template_dist_dir/*.template
 replace="s/%%VERSION%%/$3/g"
 echo "sed -i -e $replace $template_dist_dir/*.template"
 sed -i -e $replace $template_dist_dir/*.template
+replace="s/%%NAME_TAG_PREFIX%%/$4/g"
+echo "sed -i -e $replace $template_dist_dir/*.template"
+sed -i -e $replace $template_dist_dir/*.template
 
 echo "------------------------------------------------------------------------------"
 echo "Packaging Lambda Function - Analytics Processing"
