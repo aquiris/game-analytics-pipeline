@@ -68,6 +68,18 @@ Mappings:
       Default: '%%OWNER_TAG%%'
     ResourceName:
       Lambda: 'lambda-function'
+      S3: 's3-bucket'
+      DynamoDB: 'dynamodb-table'
+      LogGroup: 'log-group'
+      GlueCrawler: 'glue-crawler'
+      GlueWorkflow: 'glue-workflow'
+      GlueTrigger: 'glue-trigger'
+      GlueJob: 'glue-job'
+      CloudWatchEventRule: 'cloud-watch-event-rule'
+      AthenaWorkGroup: 'athena-work-group'
+      IAMRole: 'iam-role'
+      KinesisStream: 'kinesis-stream'
+      KinesisFirehose: 'kinesis-firehose'
     
 Conditions:
   EmailProvided: !Not [!Equals [!Ref SolutionAdminEmailAddress, false]]
@@ -210,6 +222,12 @@ Resources:
     Properties:
       LogGroupName: !Sub '/aws/lambda/${EventsProcessingFunction}'
       RetentionInDays: !FindInMap [CloudWatchSettings, LogGroup, RetentionInDays]
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, LogGroup ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -260,6 +278,12 @@ Resources:
                 - lambda.amazonaws.com
             Action:
               - sts:AssumeRole
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, IAMRole ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
       Policies:
         - PolicyName: AnalyticsProcessingPolicy
           PolicyDocument:
@@ -298,6 +322,12 @@ Resources:
     Properties:
       LogGroupName: !Sub '/aws/lambda/${AnalyticsProcessingFunction}'
       RetentionInDays: !FindInMap [CloudWatchSettings, LogGroup, RetentionInDays]
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, LogGroup ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -456,6 +486,12 @@ Resources:
             NoncurrentVersionTransitions:
               - StorageClass: INTELLIGENT_TIERING
                 TransitionInDays: 7
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, S3 ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -495,6 +531,12 @@ Resources:
             NoncurrentVersionTransitions:
               - StorageClass: STANDARD_IA
                 TransitionInDays: 30
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, S3 ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   ##########
   # Athena #
@@ -512,6 +554,12 @@ Resources:
           EncryptionConfiguration: 
             EncryptionOption: SSE_S3
           OutputLocation: !Sub 's3://${AnalyticsBucket}/athena_query_results/'
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, AthenaWorkGroup ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   # Create the Athena Named Queries in the Workgroup 
   CreateAthenaQueries:
@@ -612,6 +660,12 @@ Resources:
           jobName:
             - !Ref GameEventsEtlJob
       State: ENABLED
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, CloudWatchEventRule ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   GlueCrawlerStatusEvents:
     Type: AWS::Events::Rule
@@ -626,6 +680,12 @@ Resources:
           crawlerName:
             - !Ref EventsCrawler
       State: ENABLED
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, CloudWatchEventRule ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
 
   # Glue Crawler to detect changes to the processed events 
   EventsCrawler:
@@ -646,6 +706,12 @@ Resources:
         UpdateBehavior: 'UPDATE_IN_DATABASE'
         DeleteBehavior: 'LOG'
       Configuration: "{\"Version\":1.0,\"CrawlerOutput\":{\"Partitions\":{\"AddOrUpdateBehavior\":\"InheritFromTable\"},\"Tables\":{\"AddOrUpdateBehavior\":\"MergeNewColumns\"}}}"
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, GlueCrawler ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   GlueCrawlerRole:
     Type: AWS::IAM::Role
@@ -715,6 +781,12 @@ Resources:
                   - logs:PutLogEvents
                 Resource: 
                   - !Sub 'arn:*:logs:*:*:/aws-glue/*'
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, IAMRole ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
             
   # Glue Workflow to organize ETL Job and Crawlers for processing game events   
   GameEventsWorkflow:
@@ -732,6 +804,12 @@ Resources:
         '--glue_tmp_prefix': !FindInMap [GlueSettings, LocationS3Prefix, EtlTempS3Prefix]
         '--job-bookmark-option': 'job-bookmark-enable'
         '--TempDir': !Join ['', [!Sub 's3://${AnalyticsBucket}/', !FindInMap [GlueSettings, LocationS3Prefix, EtlTempS3Prefix]]]
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, GlueWorkflow ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
 
   GameEventsCrawlerTrigger:
     Type: AWS::Glue::Trigger
@@ -747,6 +825,12 @@ Resources:
           - LogicalOperator: EQUALS
             JobName: !Ref GameEventsEtlJob
             State: SUCCEEDED
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, GlueTrigger ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   GameEventsTriggerETLJob:
     Type: AWS::Glue::Trigger
@@ -756,6 +840,12 @@ Resources:
       Description: !Sub 'Triggers the start of ETL job to process raw_events, for stack ${AWS::StackName}.'
       Actions:
         - JobName: !Ref GameEventsEtlJob
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, GlueTrigger ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   # IAM Role allowing Glue ETL Job to access Analytics Bucket      
   GameEventsEtlRole:
@@ -820,6 +910,12 @@ Resources:
                   - kms:GenerateDataKey
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:kms:${AWS::Region}:${AWS::AccountId}:alias/aws/glue'
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, IAMRole ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   # Invoke the GluePartitionCreator function to create date-based Glue Partition for current date (UTC)
   CreateGluePartition:
@@ -867,6 +963,12 @@ Resources:
         '--job-bookmark-option': 'job-bookmark-enable'
         '--TempDir': !Join ['', [!Sub 's3://${AnalyticsBucket}/', !FindInMap [GlueSettings, LocationS3Prefix, EtlTempS3Prefix]]]
       MaxRetries: 0
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, GlueJob ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   ###########
   # Kinesis #
@@ -879,6 +981,12 @@ Resources:
       StreamEncryption:
         EncryptionType: KMS
         KeyId: alias/aws/kinesis
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, KinesisStream ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
         
   GameEventsFirehoseRole:
     Type: AWS::IAM::Role
@@ -940,11 +1048,23 @@ Resources:
                 Action: logs:PutLogEvents
                 Resource: !GetAtt FirehoseLogGroup.Arn
             
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, IAMRole ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   FirehoseLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
       RetentionInDays: !FindInMap [CloudWatchSettings, LogGroup, RetentionInDays]
       LogGroupName: !Sub '/aws/kinesisfirehose/${AWS::StackName}-Ingestion'
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, LogGroup ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
     Metadata:
       cfn_nag:
         rules_to_suppress:
@@ -1028,6 +1148,12 @@ Resources:
             TableName: !Ref GameRawEventsTable
             Region: !Ref AWS::Region
             VersionId: LATEST
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, KinesisFirehose ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
 
   ###################
   # DYNAMODB TABLES #
@@ -1047,6 +1173,12 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, DynamoDB ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
  
   ####################
   # Custom Resources #
@@ -1245,6 +1377,12 @@ Resources:
                 Resource:
                   - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AnalyticsProcessingFunction}'
                   - !Sub 'arn:${AWS::Partition}:lambda:${AWS::Region}:${AWS::AccountId}:function:${AnalyticsProcessingFunction}:*'
+      Tags:
+        Contact: !FindInMap [ TagsSettings, Contact, Default ]
+        Name: !Join [ "-", [ !FindInMap [ TagsSettings, ResourceName, IAMRole ], '%%ENV_TAG%%' ] ]
+        EUID: !FindInMap [ TagsSettings, EUID, Default ]
+        Owner: !FindInMap [ TagsSettings, Owner, Default ]
+        Service: !FindInMap [ TagsSettings, Service, Default ]
   
   ##############
   # DASHBOARDS #
